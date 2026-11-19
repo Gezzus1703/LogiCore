@@ -15,3 +15,14 @@
 .env
 .env.*
 !.env.example
+
+# Python data generator
+data-generator/.venv/
+data-generator/output/*
+!data-generator/output/.gitkeep
+data-generator/**/__pycache__/
+data-generator/**/*.pyc
+data-generator/src/tests/
+
+# Local SQL Database Project publish profile
+NorthStarERP.publish.xml
