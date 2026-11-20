@@ -1,173 +1,244 @@
-# LogiCore - End-to-End Data Engineering Platform
+# LogiCore - ERP Data Generator & SQL Server Database
 
-**Building a data platform from scratch, one step at a time.**
+**A hands-on Data Engineering project for generating, loading, and
+validating relational ERP data.**
 
-LogiCore is a hands-on Data Engineering portfolio project focused on
-designing and building an end-to-end data solution using modern data
-engineering technologies.
+LogiCore simulates a simplified ERP environment. It combines a
+Python-based data generator with a SQL Server database, transactional
+data import scripts, relational constraints, temporal tables, and data
+quality checks.
 
-The project uses realistic ERP-style business data as its source
-environment to explore the complete data lifecycle, from data generation
-and ingestion to storage, transformation, processing, and analytics.
+The project focuses on practical data engineering foundations: creating
+consistent datasets, moving data between systems, modeling business
+entities, and validating the results after loading.
 
-The main goal is to build a practical, maintainable data platform while
-applying engineering practices used in real-world data projects.
+## Project Overview
 
-------------------------------------------------------------------------
+The current implementation covers the following workflow:
 
-## Project Goals
+1.  Generate sample ERP data with Python.
+2.  Export generated records to CSV files.
+3.  Load reference and business data into SQL Server using T-SQL import
+    scripts.
+4.  Maintain relationships and data integrity through database
+    constraints.
+5.  Track historical changes with SQL Server System-Versioned Temporal
+    Tables.
+6.  Run read-only SQL checks to validate the imported dataset.
 
--   Design a structured relational database using SQL Server.
--   Generate realistic and interconnected business datasets.
--   Build reliable data ingestion and processing workflows.
--   Implement a Medallion Architecture (Bronze, Silver, Gold).
--   Apply data transformation and quality testing practices.
--   Explore cloud-based data engineering using Microsoft Azure.
--   Deliver analytical datasets ready for reporting and visualization.
-
-## Architecture Overview
-
-The target architecture is designed around a modern data engineering
-workflow.
+## Architecture
 
 ``` mermaid
 flowchart TD
-    A["Business Data Sources"] --> B["Python Data Generator"]
-    B --> C["CSV Datasets"]
-    C --> D["SQL Server"]
-    D --> E["Azure Data Factory"]
-    E --> F["Azure Data Lake Storage Gen2"]
-    F --> G["Bronze Layer"]
-    G --> H["Silver Layer"]
-    H --> I["Gold Layer"]
-    I --> J["Power BI"]
-
-    subgraph Processing["Data Processing"]
-        G
-        H
-        I
-    end
+    A[Python Data Generator] --> B[CSV Files]
+    B --> C[SQL Server Import Scripts]
+    C --> D[NorthStarERP Database]
+    D --> E[Relational Data Model]
+    E --> F[Data Quality Validation]
+    E --> G[System-Versioned Temporal Tables]
 ```
-
-*This diagram represents the planned end-to-end architecture. Components
-are being implemented incrementally.*
 
 ## Technology Stack
 
-  Area                   Technologies
-  ---------------------- ------------------------------
-  Programming            Python
-  Database               Microsoft SQL Server
-  Database Development   SQL Server Database Project
-  Containers             Docker
-  Data Generation        Python, CSV
-  Cloud Platform         Microsoft Azure
-  Data Orchestration     Azure Data Factory
-  Cloud Storage          Azure Data Lake Storage Gen2
-  Data Processing        Azure Databricks, PySpark
-  Data Format            Delta Lake
-  Transformation         dbt
-  Analytics              Power BI
-  Version Control        Git, GitHub
-  Testing                pytest
+  Technology        Purpose
+  ----------------- ----------------------------------------------
+  Python            ERP data generation
+  SQL Server 2022   Relational database
+  T-SQL             Data loading, constraints, and validation
+  Docker            Local SQL Server environment
+  `uv`              Python environment and dependency management
+  Git               Version control
 
-## Current Progress
+## Data Model
 
-### Day 1 - Database Foundation
+The database represents a simplified ERP system and separates reference
+data from business entities.
 
--   Created the SQL Server Database Project.
--   Designed the initial relational database structure and tables.
--   Set up SQL Server using Docker.
--   Created the database and deployed the initial tables.
+### Reference tables
 
-### Day 2 - Data Generation Layer
+  Table              Description
+  ------------------ ------------------------------------------
+  `Countries`        Country reference data
+  `Currencies`       Supported currencies
+  `UnitsOfMeasure`   Units used for products and transactions
 
-Developed a Python-based data generator to create realistic,
-interconnected business datasets.
+### Business tables
 
-**Implemented so far:**
+  Table            Description
+  ---------------- ---------------------------------
+  `Customers`      Customer information
+  `Products`       Product catalog
+  `Orders`         Customer orders
+  `OrderDetails`   Individual order items
+  `Invoices`       Invoices associated with orders
+  `InvoiceLines`   Invoice line items
+  `Payments`       Payment transactions
 
--   Created generators for customers, products, orders, invoices,
-    payments, and other business entities.
--   Generated 10 main datasets along with additional reference datasets.
--   Implemented relationships between entities and basic business rules.
--   Introduced `RANDOM_SEED = 42` to ensure reproducible data
-    generation.
--   Started implementing automated tests for data generators.
+Primary keys, unique constraints, and foreign keys help maintain data
+integrity and enforce relationships between the entities.
 
-### Data Generation Results
+## Data Generation
 
-  Metric                              Result
-  -------------------- ---------------------
-  Main datasets                           10
-  Generated records                    2,892
-  Reference datasets     Additional datasets
-  Random seed                             42
-  Output format                          CSV
+The Python generator creates sample ERP data, including:
+
+-   Customers and product catalog entries.
+-   Orders and order details.
+-   Invoices and invoice lines.
+-   Payment transactions.
+-   Reference data such as countries, currencies, and units of measure.
+
+Generated records are exported to CSV files for loading into SQL Server.
+
+### Run the generator
+
+The project uses `uv` to manage its Python environment and dependencies.
+
+``` bash
+uv sync
+uv run python -m logicore_generator.main
+```
+
+## SQL Server Data Loading
+
+Data is loaded into the `NorthStarERP` database through separate SQL
+scripts. The scripts divide the import process into logical stages:
+
+  Script                           Description
+  -------------------------------- ------------------------------------
+  `01_import_reference_data.sql`   Imports reference data
+  `02_import_master_data.sql`      Imports customers and products
+  `03_import_orders.sql`           Imports orders and order details
+  `04_import_invoices.sql`         Imports invoices and invoice lines
+  `05_import_payments.sql`         Imports payment transactions
+
+The import scripts use transactions and error handling to help prevent
+partially completed imports. They also perform data type conversion and
+map business identifiers to database primary keys.
+
+**Import scripts are designed to run once against an empty database.**
+They are not idempotent. Running them again against an already populated
+database may cause duplicate records or constraint violations.
+
+## Temporal Tables
+
+Seven business tables use SQL Server System-Versioned Temporal Tables:
+
+-   `Customers`
+-   `Products`
+-   `Orders`
+-   `OrderDetails`
+-   `Invoices`
+-   `InvoiceLines`
+-   `Payments`
+
+SQL Server automatically stores previous versions of records in
+associated history tables. Each temporal table uses the `ValidFrom` and
+`ValidTo` period columns.
+
+This provides a foundation for querying historical data and examining
+how records change over time.
+
+## Data Quality Validation
+
+The project includes a read-only SQL validation script:
+
+``` text
+sql/validation/01_validate_data_quality.sql
+```
+
+The script checks:
+
+-   Row counts in the business tables.
+-   Referential integrity between related entities.
+-   Missing customer, product, order, and invoice relationships.
+-   Invalid order quantities.
+-   Negative product prices.
+-   Invalid discount percentages.
+-   Temporal table configuration.
+
+The validation queries do not modify the database.
+
+### Latest validation results
+
+The latest recorded validation run returned:
+
+  Check                            Result
+  ------------------------------ --------
+  Customers                           100
+  Products                             50
+  Orders                              500
+  Order details                     1,524
+  Invoices                            182
+  Invoice lines                       560
+  Payments                            141
+  Referential integrity issues          0
+  Invalid order quantities              0
+  Negative product prices               0
+  Invalid discounts                     0
+  Active temporal tables           7 of 7
+
+## Current Dataset
+
+The current generated dataset contains **3,087 records across 10
+tables**.
+
+  Entity                 Records
+  ------------------ -----------
+  Countries                   15
+  Currencies                   5
+  Units of Measure            10
+  Customers                  100
+  Products                    50
+  Orders                     500
+  Order Details            1,524
+  Invoices                   182
+  Invoice Lines              560
+  Payments                   141
+  **Total**            **3,087**
+
+These figures describe the dataset from the latest recorded successful
+import and validation run. A new generator run may produce different
+data depending on the project configuration.
 
 ## Project Structure
 
 ``` text
-LogiCore/
+data-generator/
 │
-├── data-generator/
-│   └── Python data generation module
+├── src/
+│   └── logicore_generator/
+│       └── ...
 │
-├── Logicore.Database/
-│   └── SQL Server Database Project
+├── sql/
+│   ├── import/
+│   │   ├── 01_import_reference_data.sql
+│   │   ├── 02_import_master_data.sql
+│   │   ├── 03_import_orders.sql
+│   │   ├── 04_import_invoices.sql
+│   │   └── 05_import_payments.sql
+│   │
+│   └── validation/
+│       └── 01_validate_data_quality.sql
 │
-├── README.md
-└── .gitignore
+├── pyproject.toml
+├── uv.lock
+└── README.md
 ```
-
-*The structure will evolve as additional components are introduced.*
-
-## Development Roadmap
-
-The project is being developed incrementally, with each stage building
-on the previous one.
-
--   [x] Initialize the project and repository.
--   [x] Create the SQL Server Database Project.
--   [x] Design the initial database structure.
--   [x] Configure SQL Server using Docker.
--   [x] Build the initial Python data generator.
--   [x] Generate interconnected business datasets.
--   [x] Introduce reproducible data generation.
--   [ ] Expand automated tests and data validation.
--   [ ] Import generated datasets into SQL Server.
--   [ ] Develop the data ingestion workflow.
--   [ ] Integrate Azure Data Factory.
--   [ ] Implement Azure Data Lake Storage Gen2.
--   [ ] Build Bronze, Silver, and Gold layers.
--   [ ] Implement transformations using PySpark and Delta Lake.
--   [ ] Introduce dbt for analytical transformations and testing.
--   [ ] Build reporting datasets and Power BI dashboards.
--   [ ] Improve orchestration, monitoring, and documentation.
-
-## Engineering Approach
-
-Throughout development, the focus is on:
-
--   **Data Quality:** Ensuring consistency, correctness, and reliable
-    relationships between datasets.
--   **Reproducibility:** Making data generation and processing
-    repeatable.
--   **Modularity:** Keeping individual components separated and
-    maintainable.
--   **Testing:** Validating data and transformations throughout the
-    workflow.
--   **Scalability:** Designing the solution with future cloud-based
-    processing in mind.
--   **Documentation:** Recording architectural decisions and
-    implementation progress.
 
 ## Project Status
 
-**Currently under active development.**
+The current implementation includes:
 
-LogiCore is being built from the ground up. The repository will be
-updated as new components, workflows, and architectural improvements are
-implemented.
+-   [x] Python-based ERP data generation.
+-   [x] CSV data export.
+-   [x] SQL Server database implementation.
+-   [x] Relational data model with primary and foreign keys.
+-   [x] Transactional SQL import scripts.
+-   [x] System-Versioned Temporal Tables.
+-   [x] SQL data quality validation.
 
-**One step at a time. Let's build LogiCore!**
+## Author
+
+Developed as a hands-on Data Engineering portfolio project to practice
+Python, SQL Server, relational data modeling, data loading, and data
+quality validation.

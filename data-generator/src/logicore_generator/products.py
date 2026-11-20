@@ -112,7 +112,7 @@ def generate_products():
         if min_weight is None:
             net_weight = ""
         else:
-            net_weight = f"{random.uniform(min_weight, max_weight):.4f}"
+            net_weight = f"{random.uniform(min_weight, max_weight):.3f}"
 
         product = {
             "ProductCode": f"PROD-{number:05d}",

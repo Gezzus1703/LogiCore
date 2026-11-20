@@ -22,7 +22,9 @@ data-generator/output/*
 !data-generator/output/.gitkeep
 data-generator/**/__pycache__/
 data-generator/**/*.pyc
-data-generator/src/tests/
 
 # Local SQL Database Project publish profile
 NorthStarERP.publish.xml
+
+# Python package build artifacts
+*.egg-info/
