@@ -26,3 +26,6 @@ data-generator/src/tests/
 
 # Local SQL Database Project publish profile
 NorthStarERP.publish.xml
+
+# Python package build artifacts
+*.egg-info/
